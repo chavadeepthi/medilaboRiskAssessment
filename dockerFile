@@ -1,0 +1,17 @@
+# Use an official OpenJDK runtime as a parent image
+FROM openjdk:21-jdk-slim
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the application's JAR file into the container
+COPY target/medilabo*.jar app.jar
+
+# Expose the port the app runs on
+EXPOSE 8084
+
+# RUN mkdir -p /var/log/myapp && chmod 777 /var/log/myapp
+
+# Run the JAR file
+# ENTRYPOINT ["java","-Dspring.profiles.active=docker","-jar", "/app/app.jar"]
+ENTRYPOINT ["java","-Dspring.config.location=classpath:/application-docker.properties","-jar","/app/app.jar"]
