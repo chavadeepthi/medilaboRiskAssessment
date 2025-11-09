@@ -1,88 +1,40 @@
 package com.abernathy.medilaboriskassessment.controller;
 
 import com.abernathy.medilaboriskassessment.dto.DiabetesAssessmentResult;
-import com.abernathy.medilaboriskassessment.dto.Patient;
-import com.abernathy.medilaboriskassessment.dto.MedicalNote;
-import com.abernathy.medilaboriskassessment.service.DiabetesAssessmentService;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
+import com.abernathy.medilaboriskassessment.dto.RiskAssessmentRequest;
+import com.abernathy.medilaboriskassessment.service.RiskAssessmentService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
+
+import org.springframework.web.bind.annotation.*;
+
 
 import java.util.Arrays;
-
 @RestController
-@RequestMapping("/assess")
-
+@RequestMapping("/risk")
 @Slf4j
 public class DiabetesAssessmentController {
+    private final RiskAssessmentService riskService;
 
-    private final DiabetesAssessmentService assessmentService;
-    private final RestTemplate restTemplate;
-    private final String gatewayBaseUrl;
-    //private final DiabetesAssessmentResult diabetesAssessmentResult;
-
-    public DiabetesAssessmentController(RestTemplate restTemplate,
-                                        @Value("${gateway.base-url}") String gatewayBaseUrl,
-                                       // DiabetesAssessmentResult diabetesAssessmentResult,
-                                        DiabetesAssessmentService diabetesAssessmentService)
-    {
-        this.restTemplate = restTemplate;
-        this.gatewayBaseUrl = gatewayBaseUrl;
-        log.info("Assessment repo started with gatewayBaseUrl={}", gatewayBaseUrl);
-        //this.diabetesAssessmentResult = diabetesAssessmentResult;
-        this.assessmentService = diabetesAssessmentService;
+    public DiabetesAssessmentController(RiskAssessmentService riskService) {
+        this.riskService = riskService;
     }
 
-    @GetMapping("/{patientId}")
-    public ResponseEntity<DiabetesAssessmentResult> assessRisk(@PathVariable int patientId, HttpServletRequest request) {
-        HttpEntity<Void> entity = createEntityWithSession(request);
-        log.info("Calculating risk assessment for patient id:", patientId);
-        // Fetch patient
-        Patient patient = restTemplate.exchange(
-                gatewayBaseUrl + "/api/proxy/patients?id=" + patientId,
-                HttpMethod.GET,
-                entity,
-                Patient.class
-        ).getBody();
-
-        //Fetch Medical Notes
-        MedicalNote[] notesArray = restTemplate.exchange(
-                gatewayBaseUrl + "/api/proxy/notes/history?patientId=" + patientId,
-                HttpMethod.GET,
-                entity,
-                MedicalNote[].class
-        ).getBody();
-
-        DiabetesAssessmentResult result = assessmentService.assessRisk(patient, notesArray);
+    @PostMapping("/assess")
+    public ResponseEntity<DiabetesAssessmentResult> assessRisk(@RequestBody RiskAssessmentRequest request) {
+        DiabetesAssessmentResult result = riskService.assessRisk(request.getPatient(), request.getNotes());
         return ResponseEntity.ok(result);
     }
-
-    // -----------------------
-    // Helper methods
-    // -----------------------
-    private HttpEntity<Void> createEntityWithSession(HttpServletRequest request) {
-        HttpHeaders headers = new HttpHeaders();
-        String jsessionId = Arrays.stream(request.getCookies() != null ? request.getCookies() : new Cookie[0])
-                .filter(c -> "JSESSIONID".equals(c.getName()))
-                .map(Cookie::getValue)
-                .findFirst()
-                .orElse(null);
-
-        if (jsessionId != null) {
-            headers.add(HttpHeaders.COOKIE, "JSESSIONID=" + jsessionId);
-        }
-        return new HttpEntity<>(headers);
-    }
 }
-
+//    private HttpEntity<Void> createEntityWithSession(HttpServletRequest request) {
+//        HttpHeaders headers = new HttpHeaders();
+//        if (request.getCookies() != null) {
+//            Arrays.stream(request.getCookies())
+//                    .filter(c -> "JSESSIONID".equals(c.getName()))
+//                    .findFirst()
+//                    .ifPresent(cookie -> headers.add(HttpHeaders.COOKIE, "JSESSIONID=" + cookie.getValue()));
+//        }
+//        return new HttpEntity<>(headers);
+//    }
+//}
