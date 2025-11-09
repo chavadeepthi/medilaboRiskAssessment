@@ -1,15 +1,15 @@
 package com.abernathy.medilaboriskassessment.service;
-
-
-
 import com.abernathy.medilaboriskassessment.dto.DiabetesAssessmentResult;
 import com.abernathy.medilaboriskassessment.dto.Patient;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 
 @Service
 public class RiskAssessmentService {
+
 
     private static final List<String> TRIGGER_TERMS = List.of(
             "Hemoglobin A1C", "Microalbumin", "Height", "Weight",
@@ -18,13 +18,21 @@ public class RiskAssessmentService {
     );
 
     public DiabetesAssessmentResult assessRisk(Patient patient, List<String> notes) {
+
+        if (patient.getAge() == null && patient.getDob() != null) {
+            int computedAge = Period.between(patient.getDob(), LocalDate.now()).getYears();
+            patient.setAge(computedAge);
+        }
+
         int triggerCount = (int) notes.stream()
                 .flatMap(note -> TRIGGER_TERMS.stream()
                         .filter(term -> note.toLowerCase().contains(term.toLowerCase())))
                 .count();
 
         String riskLevel = calculateRiskLevel(patient, triggerCount);
-        return new DiabetesAssessmentResult(riskLevel);
+        DiabetesAssessmentResult result = new DiabetesAssessmentResult();
+        result.setRiskLevel(riskLevel);
+        return result;
     }
 
     private String calculateRiskLevel(Patient patient, int triggerCount) {
