@@ -1,14 +1,69 @@
 package com.abernathy.medilaboriskassessment.service;
 import com.abernathy.medilaboriskassessment.dto.DiabetesAssessmentResult;
+import com.abernathy.medilaboriskassessment.dto.MedicalNote;
 import com.abernathy.medilaboriskassessment.dto.Patient;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class RiskAssessmentService {
+    private final RestTemplate restTemplate;
+
+    public RiskAssessmentService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    @Value("${gateway.base-url}")
+    private String gateWayURL;
+
+    public DiabetesAssessmentResult assessRiskCheck(Long patientId, HttpServletRequest request) {
+
+        HttpEntity<Void> entity = createEntityWithSession(request);
+
+        // Fetch patient
+        Patient patient = restTemplate.exchange(
+                gateWayURL + "/api/proxy/patients?id=" + patientId,
+                HttpMethod.GET,
+                entity,
+                Patient.class
+        ).getBody();
+
+        log.info("Fetched patient: {}", patient);
+
+        // Fetch notes
+        MedicalNote[] notesArray = restTemplate.exchange(
+                gateWayURL + "/api/proxy/notes/history?patientId=" + patientId,
+                HttpMethod.GET,
+                entity,
+                MedicalNote[].class
+        ).getBody();
+
+        log.info("Fetched Notes: {}", notesArray);
+
+        List<String> notesText = notesArray != null ?
+                Arrays.stream(notesArray)
+                        .map(MedicalNote::getNote)
+                        .collect(Collectors.toList()) :
+                Collections.emptyList();
+
+        return assessRisk(patient, notesText);
+    }
 
 
     private static final List<String> TRIGGER_TERMS = List.of(
@@ -59,5 +114,19 @@ public class RiskAssessmentService {
         }
 
         return "None";
+    }
+
+    // -----------------------
+    // Helper methods
+    // -----------------------
+    private HttpEntity<Void> createEntityWithSession(HttpServletRequest request) {
+        HttpHeaders headers = new HttpHeaders();
+        if (request.getCookies() != null) {
+            Arrays.stream(request.getCookies())
+                    .filter(c -> "JSESSIONID".equals(c.getName()))
+                    .findFirst()
+                    .ifPresent(cookie -> headers.add(HttpHeaders.COOKIE, "JSESSIONID=" + cookie.getValue()));
+        }
+        return new HttpEntity<>(headers);
     }
 }
