@@ -30,7 +30,7 @@ public class RiskAssessmentService {
     }
 
     @Value("${gateway.base-url}")
-    private String gateWayURL;
+    public String gateWayURL;
 
     public DiabetesAssessmentResult assessRiskCheck(Long patientId, HttpServletRequest request) {
 
@@ -119,7 +119,7 @@ public class RiskAssessmentService {
     // -----------------------
     // Helper methods
     // -----------------------
-    private HttpEntity<Void> createEntityWithSession(HttpServletRequest request) {
+    public HttpEntity<Void> createEntityWithSession(HttpServletRequest request) {
         HttpHeaders headers = new HttpHeaders();
         if (request.getCookies() != null) {
             Arrays.stream(request.getCookies())
