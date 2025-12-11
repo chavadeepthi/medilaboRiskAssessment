@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Medical Notes DTO */
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

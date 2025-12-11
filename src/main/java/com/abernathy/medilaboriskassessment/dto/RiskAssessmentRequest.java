@@ -3,6 +3,8 @@ package com.abernathy.medilaboriskassessment.dto;
 
 import java.util.List;
 
+/** Risk Assessment get Patient and get Medical note */
+
 public class RiskAssessmentRequest {
     private Patient patient;
     private List<String> notes;

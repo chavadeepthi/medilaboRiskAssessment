@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/** Risk Assessment calculation service */
 @Service
 @Slf4j
 public class RiskAssessmentService {
